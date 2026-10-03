@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use FracID in your research or applications, please cite it as below."
+title: "FracID: Identification of Fractional-Order Dynamical Systems from Time-Series Data"
+abstract: "FracID is a high-performance Python framework and interactive web application for identifying commensurate-order Caputo fractional differential equation systems from measured or synthetic time series."
+version: 2.0.0
+date-released: 2026-10-03
+url: "https://github.com/mdsamhussain1996/fracid"
+repository-code: "https://github.com/mdsamhussain1996/fracid"
+license: MIT
+authors:
+  - family-names: Ansari
+    given-names: Md Samshad Hussain
+    orcid: "https://orcid.org/0000-0002-7757-3216"
+keywords:
+  - "fractional calculus"
+  - "system identification"
+  - "Caputo derivative"
+  - "differential evolution"
+  - "physics-informed neural networks"
+  - "parameter estimation"
+  - "epidemiological modeling"

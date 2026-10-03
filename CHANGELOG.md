@@ -29,3 +29,8 @@ All notable changes to FracID are documented in this file.
 - **Sidebar Integration**: Added `"Example: Influenza Outbreak 1978"` directly in the sidebar data source selector to instantly load the outbreak benchmark with pre-configured parameters.
 - **Tutorial Notebook**: Added `notebooks/case_study_real_data.ipynb` reproducing data exploration, fractional SIR identification, integer-order comparison, residual bootstrap, and profile likelihood CIs.
 - **Unit Tests**: Added `tests/test_real_data.py` validating dataset existence, structure, and model fitting.
+## [v2.0.0-step7] - Step 7: Publication Readiness (JOSS)
+- **CI Workflow**: Added GitHub Actions workflow (`.github/workflows/ci.yml`) testing on Python 3.11 and 3.12 across all pushes and pull requests; added CI status badge to `README.md`.
+- **Software Citation**: Added `CITATION.cff` specifying author Dr. Md Samshad Hussain Ansari (ORCID 0000-0002-7757-3216) and project metadata.
+- **JOSS Submission Manuscript**: Authored `paper/paper.md` and `paper/paper.bib` formatted for the Journal of Open Source Software with summary, statement of need, comparison with FOMCON/FOTF, numerical methods, and citations.
+- **Documentation**: Added paper figure reproduction guide and real-data case study instructions to `README.md`.

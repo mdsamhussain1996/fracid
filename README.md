@@ -1,6 +1,7 @@
 # ⚡ FracID: Fractional-Order Dynamical System Identification
 
-[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
+[![CI](https://github.com/mdsamhussain1996/fracid/actions/workflows/ci.yml/badge.svg)](https://github.com/mdsamhussain1996/fracid/actions)
+[![Python 3.11](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://streamlit.io)
 [![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
@@ -238,16 +239,57 @@ The case study notebook in `notebooks/case_study_fractional_chen.ipynb` demonstr
 
 ---
 
+## 🦠 Real-Data Case Study: 1978 English Boarding School Influenza
+
+The case study in `notebooks/case_study_real_data.ipynb` fits the historical 1978 English Boarding School Influenza epidemic dataset ($N=763$ boys, 15 daily counts of bed-ridden patients) using the **Fractional SIR** model:
+- **Observed States**: Susceptible $S(t)$, Infectious $I(t)$, and Recovered $R(t)$.
+- **Identified Parameters**:
+  - Fractional order: $\hat{\alpha} \approx 0.989$
+  - Transmission rate: $\hat{\beta} \approx 1.58$
+  - Recovery rate: $\hat{\gamma} \approx 0.46$
+  - Implied basic reproduction number: $R_0 = \hat{\beta}/\hat{\gamma} \approx 3.44$
+- **Uncertainty Quantification**: 95% profile likelihood confidence intervals and residual bootstrap distributions are computed and compared.
+
+---
+
+## 📊 Reproducing the Paper Figures
+
+All figures presented in the paper can be reproduced programmatically:
+
+1. **Figure 1 (Fitted Trajectories & Phase Portrait of Fractional Chen)**:
+   ```bash
+   jupyter execute notebooks/case_study_fractional_chen.ipynb
+   ```
+   Or launch the web UI, click **✨ Load Example Result**, and export from the *LaTeX & Publication Export* tab.
+
+2. **Figure 2 (2-D Loss Surface $\log_{10} J(\alpha, \theta_k)$ and Profile Likelihood)**:
+   Launch the web UI, open the **🔍 Alpha Sensitivity** tab, and toggle **2-D Landscape Heatmap**.
+
+3. **Figure 3 (Noise-Robustness Monte-Carlo Error Bands)**:
+   Launch the web UI, open the **🧪 Robustness Study** tab, and click **🚀 Run Robustness Study** (or call `fracid.diagnostics.run_robustness_study()` in Python).
+
+4. **Figure 4 (Real Outbreak Epidemiological Fit & Diagnostics)**:
+   ```bash
+   jupyter execute notebooks/case_study_real_data.ipynb
+   ```
+   Or select **Example: Influenza Outbreak 1978** in the sidebar.
+
+---
+
 ## 🧪 Testing & Validation
 Run the full test suite with pytest:
 ```bash
 pytest -v
 ```
-All 72+ unit tests cover:
+All 92+ automated unit tests cover:
 - Experimental Order of Convergence (EOC) of the ABM and GL numerical schemes.
 - Exact agreement with analytic Mittag-Leffler solutions for scalar and matrix differential equations.
-- Non-divergence handling and graded objective penalties.
-- Robust parameter recovery across all models.
+- Population-batched ABM solver agreeing with serial solver to round-off precision.
+- Vectorized Differential Evolution with continuation profile-likelihood CIs.
+- 2-D loss landscape evaluation via row-wise BLAS sweeps.
+- Multi-seed Monte-Carlo noise robustness studies.
+- Partial state observations, subsampling, and initial condition ($x_0$) estimation.
+- Real-world epidemiological dataset loading and parameter recovery.
 - PyTorch $L1$ Caputo derivative calculation accuracy.
 
 ---
