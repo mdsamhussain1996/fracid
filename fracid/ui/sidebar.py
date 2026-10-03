@@ -14,9 +14,9 @@ from ..models import MODELS, FractionalModel, get_model
 
 
 ACCURACY_PRESETS = {
-    "Quick (~5-10 s)": dict(max_iter=60, popsize=12, polish_iter=80, epochs=400),
-    "Standard": dict(max_iter=100, popsize=12, polish_iter=100, epochs=800),
-    "Thorough (slow)": dict(max_iter=200, popsize=15, polish_iter=200, epochs=1500),
+    "Quick (~30 s)": dict(max_iter=60, popsize=12, polish_iter=80, epochs=400),
+    "Standard (~1 min)": dict(max_iter=100, popsize=12, polish_iter=100, epochs=800),
+    "Thorough (several min)": dict(max_iter=200, popsize=15, polish_iter=200, epochs=1500),
 }
 
 
@@ -114,7 +114,7 @@ def render_sidebar() -> dict[str, Any]:
     )
 
     accuracy = st.sidebar.select_slider(
-        "Accuracy vs speed", options=list(ACCURACY_PRESETS), value="Quick (~5-10 s)",
+        "Accuracy vs speed", options=list(ACCURACY_PRESETS), value="Quick (~30 s)",
         help="Quick is enough for the built-in benchmarks; use Thorough for real data or wide bounds.")
 
     compare_int = st.sidebar.checkbox("Compare with Integer-order (α=1)", value=True)

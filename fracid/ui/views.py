@@ -51,11 +51,21 @@ def render_overview_cards(frac_res: FitResult, int_res: FitResult | None = None)
         cols[2].metric(label="AIC (Fractional)", value=f"{m_frac.aic:.1f}")
 
     # 4. Runtime / Convergence
-    cols[3].metric(
-        label="Runtime / Evaluations",
-        value=f"{frac_res.runtime:.2f} s",
-        delta=f"{frac_res.nfev} evals"
-    )
+    if int_res is not None:
+        tot_runtime = frac_res.runtime + int_res.runtime
+        tot_evals = frac_res.nfev + int_res.nfev
+        cols[3].metric(
+            label="Total Runtime (Frac + Int)",
+            value=f"{tot_runtime:.2f} s",
+            delta=f"Frac: {frac_res.runtime:.1f}s | Int: {int_res.runtime:.1f}s",
+            help=f"Total: {tot_runtime:.2f} s across {tot_evals} evaluations (Fractional: {frac_res.runtime:.2f} s, Integer: {int_res.runtime:.2f} s)."
+        )
+    else:
+        cols[3].metric(
+            label="Runtime / Evaluations",
+            value=f"{frac_res.runtime:.2f} s",
+            delta=f"{frac_res.nfev} evals"
+        )
 
 
 def render_main_tabs(frac_res: FitResult, int_res: FitResult | None = None):

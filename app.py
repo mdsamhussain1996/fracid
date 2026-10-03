@@ -48,6 +48,31 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+import os
+import pickle
+
+@st.cache_resource
+def load_example_result():
+    asset_path = os.path.join(os.path.dirname(__file__), "fracid", "assets", "example_chen.pkl")
+    with open(asset_path, "rb") as f:
+        return pickle.load(f)
+
+# Action buttons at top of main page (accessible even when sidebar is collapsed)
+col_btn1, col_btn2 = st.columns([1, 1])
+with col_btn1:
+    run_main_clicked = st.button("🚀 Run System Identification", type="primary", width="stretch", key="run_main")
+with col_btn2:
+    load_example_clicked = st.button("✨ Load Example Result (Fractional Chen)", width="stretch", key="load_example")
+
+if load_example_clicked:
+    ex = load_example_result()
+    st.session_state["frac_res"] = ex["frac_res"]
+    st.session_state["int_res"] = ex["int_res"]
+    for k in ("boot_res", "sens_df"):
+        st.session_state.pop(k, None)
+    st.success("Loaded pre-computed Fractional Chen benchmark result!")
+    st.rerun()
+
 # Render Sidebar
 cfg = render_sidebar()
 
@@ -59,13 +84,14 @@ alpha_bounds = cfg["alpha_bounds"]
 acc = cfg["accuracy"]
 bounds = cfg["bounds"]
 
+# Sidebar run button
+st.sidebar.markdown("---")
+run_sidebar_clicked = st.sidebar.button("🚀 Run System Identification", type="primary", width="stretch", key="run_sidebar")
+run_clicked = run_main_clicked or run_sidebar_clicked
+
 if dataset is None or model is None:
     st.info("👈 Please select or configure a dataset in the sidebar to begin.")
     st.stop()
-
-# Action button
-st.sidebar.markdown("---")
-run_clicked = st.sidebar.button("🚀 Run System Identification", type="primary", width="stretch")
 
 # Session state caching
 if "frac_res" not in st.session_state:
@@ -88,7 +114,7 @@ def _run_fit(prob, label: str, progress, budget: int):
                              polish_iter=acc["polish_iter"], callback=cb)
 
 
-if run_clicked:
+def execute_identification():
     try:
         prob = FitProblem(model=model, data=dataset, alpha_bounds=alpha_bounds, bounds=bounds)
     except (ValueError, KeyError) as e:
@@ -116,10 +142,13 @@ if run_clicked:
             int_res = _run_fit(prob_int, "Integer model", bar2, budget)
             bar2.progress(1.0, text=f"Integer model done in {int_res.runtime:.1f} s")
             st.session_state["int_res"] = int_res
-        # results of the extra diagnostics belong to the previous fit
         for k in ("boot_res", "sens_df"):
             st.session_state.pop(k, None)
         status.update(label="Identification finished ✅", state="complete", expanded=False)
+
+
+if run_clicked:
+    execute_identification()
 
 # Display results
 frac_res = st.session_state.get("frac_res")
