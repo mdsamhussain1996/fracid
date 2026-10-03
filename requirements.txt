@@ -1,0 +1,10 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+numpy>=1.26,<3
+scipy>=1.11
+pandas>=2.1
+matplotlib>=3.8
+plotly>=5.18
+streamlit>=1.32
+torch>=2.2
+pytest>=8.0
+nbformat>=5.9
