@@ -22,11 +22,12 @@ ACCURACY_PRESETS = {
 
 @st.cache_data(show_spinner=False, max_entries=32)
 def _cached_generate(model_name: str, alpha: float, params: tuple, x0: tuple, T: float,
-                     h: float, noise_pct: float, seed: int) -> Dataset:
+                     h: float, noise_pct: float, seed: int,
+                     observed: tuple | None = None, subsample: int = 1) -> Dataset:
     """Synthetic data are regenerated only when an input actually changes."""
     model = MODELS[model_name](alpha=alpha, params=dict(params), x0=list(x0))
     return generate(model=model, T=T, h=h, noise_percent=noise_pct if noise_pct > 0 else None,
-                    seed=seed, fine_factor=2)
+                    seed=seed, fine_factor=2, observed=observed, subsample=subsample)
 
 
 def render_sidebar() -> dict[str, Any]:
@@ -70,12 +71,47 @@ def render_sidebar() -> dict[str, Any]:
         noise_pct = st.sidebar.slider("Noise level (%)", min_value=0.0, max_value=20.0, value=5.0, step=0.5)
         seed = st.sidebar.number_input("Random Seed", value=42, step=1)
 
+        # Partial observations & Subsampling
+        observed_states = st.sidebar.multiselect(
+            "Observed States",
+            default_model.state_names,
+            default=list(default_model.state_names),
+            help="Select which system states are measured. At least one state must be observed."
+        )
+        if not observed_states:
+            st.sidebar.warning("Select at least one observed state.")
+            observed_states = list(default_model.state_names)
+
+        subsample = st.sidebar.number_input(
+            "Subsampling Factor",
+            min_value=1,
+            max_value=20,
+            value=1,
+            step=1,
+            help="Keep every k-th simulation step to mimic lower sampling frequency."
+        )
+
+        unobserved = [s for s in default_model.state_names if s not in observed_states]
+        if unobserved:
+            st.sidebar.info(
+                f"ℹ️ **Unobserved states ({', '.join(unobserved)})**: Initial conditions for unmeasured channels "
+                "cannot be taken directly from data. Joint estimation of $x_0$ is recommended."
+            )
+            x0_mode = st.sidebar.radio(
+                "Initial Condition Mode ($x_0$)",
+                ["estimate", "model"],
+                index=0,
+                help="'estimate' adds unmeasured initial conditions to the optimization parameters."
+            )
+        else:
+            x0_mode = "model"
+
         # Build model and generate synthetic dataset
         model = model_cls(alpha=true_alpha, params=param_inputs, x0=x0_inputs)
         try:
             dataset = _cached_generate(model_name, float(true_alpha), tuple(sorted(param_inputs.items())),
                                        tuple(x0_inputs), float(T_sim), float(h_sim), float(noise_pct),
-                                       int(seed))
+                                       int(seed), observed=tuple(observed_states), subsample=int(subsample))
         except RuntimeError as e:
             st.sidebar.error(f"Simulation failed: {e}")
             dataset = None
@@ -83,6 +119,7 @@ def render_sidebar() -> dict[str, Any]:
             st.sidebar.success(f"Generated {dataset.n} samples ({', '.join(dataset.names)})")
 
     else:
+        x0_mode = "data"
         uploaded_file = st.sidebar.file_uploader("Upload CSV (time in col 0)", type=["csv"])
         st.sidebar.download_button(
             "📄 Download CSV template",
@@ -102,6 +139,9 @@ def render_sidebar() -> dict[str, Any]:
                 if sel_cols:
                     dataset = Dataset.from_frame(df, time_col=time_col, value_cols=sel_cols)
                     st.sidebar.success(f"Loaded {dataset.n} observations")
+                    if len(sel_cols) < model.dim:
+                        x0_mode = "estimate"
+                        st.sidebar.info("Unobserved states detected in CSV. Initial conditions will be estimated.")
             except Exception as e:
                 st.sidebar.error(f"Error loading CSV: {e}")
 
@@ -145,4 +185,5 @@ def render_sidebar() -> dict[str, Any]:
         "compare_int": compare_int,
         "alpha_bounds": alpha_bounds,
         "bounds": bounds,
+        "x0_mode": x0_mode,
     }

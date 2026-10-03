@@ -20,3 +20,7 @@ All notable changes to FracID are documented in this file.
 - **Batched 2-D Loss Surface**: Added `compute_loss_surface_2d()` evaluating $\log_{10} J(\alpha, \theta_k)$ on a 30×30 grid with one batched BLAS sweep per row via `problem.sse_batch()`.
 - **Interactive UI Heatmap**: Added 2-D landscape option in the Alpha Sensitivity tab with Plotly heatmap, contour lines, estimate marker ($\times$), and ground-truth marker ($\circ$).
 - **Unit Tests**: Added `tests/test_landscape_2d.py` covering grid shape, finiteness, and parameter variations.
+## [v2.0.0-step5] - Step 5: Partial Observations & Initial Condition Estimation
+- **Partial Observations & Subsampling**: Added state channel multiselect and subsampling factor inputs in the synthetic data generator.
+- **Initial Condition Mode**: Added contextual detection of unmeasured states with automatic recommendation of `x0_mode="estimate"` to jointly infer unknown initial states $x_0$ alongside $(\alpha, \theta)$.
+- **Unit Tests**: Added `tests/test_partial_observations.py` validating channel selection, subsampling, and joint initial condition estimation.

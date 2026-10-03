@@ -116,7 +116,8 @@ def _run_fit(prob, label: str, progress, budget: int):
 
 def execute_identification():
     try:
-        prob = FitProblem(model=model, data=dataset, alpha_bounds=alpha_bounds, bounds=bounds)
+        x0_mode = cfg.get("x0_mode", "model")
+        prob = FitProblem(model=model, data=dataset, alpha_bounds=alpha_bounds, bounds=bounds, x0_mode=x0_mode)
     except (ValueError, KeyError) as e:
         st.error(f"Invalid problem set-up: {e}")
         st.stop()
