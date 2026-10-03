@@ -12,4 +12,8 @@ All notable changes to FracID are documented in this file.
 - **Batched Slice Evaluation**: In `mode="slice"`, all grid points are evaluated in a single forward sweep via `problem.sse_batch()`.
 - **Profile-Likelihood Confidence Intervals**: Added `compute_profile_ci()`, computing exact likelihood-ratio cut-off confidence intervals $\{\alpha : J(\alpha) - J(\hat\alpha) \le \chi^2_1(0.95) \cdot J(\hat\alpha)/(N - p)\}$.
 - **UI Diagnostics**: Highlighted the 95% profile CI region and threshold line on the interactive sensitivity plot, and added an $\alpha$ interval comparison table alongside residual bootstrap in the UI.
-- **Unit Tests**: Added `tests/test_sensitivity_profile.py` verifying continuation, batched slices, and profile CI calculations.
+## [v2.0.0-step3] - Step 3: Identifiability & Noise-Robustness Study
+- **Monte-Carlo Robustness Engine**: Added `fracid.diagnostics.robustness` with `run_robustness_study()`, evaluating parameter recovery across noise levels ($[0, 1, 2, 5, 10, 15]\%$) and independent random seeds.
+- **Publication Figures**: Added `plot_robustness_matplotlib()` generating high-resolution 2-panel figures ($\hat\alpha$ error vs noise and parameter recovery bands).
+- **Interactive UI Tab**: Introduced dedicated `"🧪 Robustness Study"` tab with live progress tracking, summary error tables, interactive charts, and 300-DPI PNG, vector PDF, and CSV data export buttons.
+- **Unit Tests**: Added `tests/test_robustness.py` verifying multi-seed Monte-Carlo runs and plotting.
