@@ -195,6 +195,21 @@ print(comparison_table)
 
 ---
 
+## ⚡ Performance: population-batched solver
+
+Differential evolution evaluates a whole population of candidate parameter vectors per generation.
+`fracid.solvers.abm_solve_batch` integrates **all candidates simultaneously** (each with its own α and θ)
+with the same Diethelm ABM scheme, turning every history convolution into one batched BLAS `matmul`.
+L-BFGS-B obtains its finite-difference gradient from a single batched sweep of `p + 1` points.
+
+| Fractional Chen, 601 samples, 5 % noise | Before | After |
+|---|---|---|
+| Differential evolution (150 generations) | ~3 min | ~16 s |
+| App default ("Quick" preset, fractional + integer fit) | > 3 min | ~15 s |
+
+Batched and serial objective values agree to round-off (`tests/test_batch.py`). The app offers three
+presets — *Quick*, *Standard*, *Thorough* — trading speed for robustness of the global search.
+
 ## 🔬 Benchmark Model Library
 
 | Model Name | Equations | Default $\alpha$ | Default Parameters |

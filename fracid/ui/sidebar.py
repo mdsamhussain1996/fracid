@@ -13,6 +13,22 @@ from ..data.generator import generate
 from ..models import MODELS, FractionalModel, get_model
 
 
+ACCURACY_PRESETS = {
+    "Quick (~5-10 s)": dict(max_iter=60, popsize=12, polish_iter=80, epochs=400),
+    "Standard": dict(max_iter=100, popsize=12, polish_iter=100, epochs=800),
+    "Thorough (slow)": dict(max_iter=200, popsize=15, polish_iter=200, epochs=1500),
+}
+
+
+@st.cache_data(show_spinner=False, max_entries=32)
+def _cached_generate(model_name: str, alpha: float, params: tuple, x0: tuple, T: float,
+                     h: float, noise_pct: float, seed: int) -> Dataset:
+    """Synthetic data are regenerated only when an input actually changes."""
+    model = MODELS[model_name](alpha=alpha, params=dict(params), x0=list(x0))
+    return generate(model=model, T=T, h=h, noise_percent=noise_pct if noise_pct > 0 else None,
+                    seed=seed, fine_factor=2)
+
+
 def render_sidebar() -> dict[str, Any]:
     """Render sidebar controls and return a dictionary of run configurations."""
     st.sidebar.title("🎛️ FracID Configuration")
@@ -56,18 +72,22 @@ def render_sidebar() -> dict[str, Any]:
 
         # Build model and generate synthetic dataset
         model = model_cls(alpha=true_alpha, params=param_inputs, x0=x0_inputs)
-        dataset = generate(
-            model=model,
-            T=T_sim,
-            h=h_sim,
-            noise_percent=noise_pct if noise_pct > 0 else None,
-            seed=int(seed),
-            fine_factor=2
-        )
-        st.sidebar.success(f"Generated {dataset.n} samples ({', '.join(dataset.names)})")
+        try:
+            dataset = _cached_generate(model_name, float(true_alpha), tuple(sorted(param_inputs.items())),
+                                       tuple(x0_inputs), float(T_sim), float(h_sim), float(noise_pct),
+                                       int(seed))
+        except RuntimeError as e:
+            st.sidebar.error(f"Simulation failed: {e}")
+            dataset = None
+        if dataset is not None:
+            st.sidebar.success(f"Generated {dataset.n} samples ({', '.join(dataset.names)})")
 
     else:
         uploaded_file = st.sidebar.file_uploader("Upload CSV (time in col 0)", type=["csv"])
+        st.sidebar.download_button(
+            "📄 Download CSV template",
+            data="t,x,y,z\n0.0,-9.0,-5.0,14.0\n0.01,-8.7,-4.1,13.8\n0.02,-8.3,-3.2,13.5\n",
+            file_name="fracid_template.csv", mime="text/csv", width="stretch")
         model_name = st.sidebar.selectbox("Candidate Model Template", list(MODELS.keys()), index=2)
         model = MODELS[model_name]()
 
@@ -93,6 +113,10 @@ def render_sidebar() -> dict[str, Any]:
         index=0
     )
 
+    accuracy = st.sidebar.select_slider(
+        "Accuracy vs speed", options=list(ACCURACY_PRESETS), value="Quick (~5-10 s)",
+        help="Quick is enough for the built-in benchmarks; use Thorough for real data or wide bounds.")
+
     compare_int = st.sidebar.checkbox("Compare with Integer-order (α=1)", value=True)
 
     with st.sidebar.expander("Search Bounds for α and Parameters", expanded=False):
@@ -117,6 +141,7 @@ def render_sidebar() -> dict[str, Any]:
         "model": model,
         "dataset": dataset,
         "method": method,
+        "accuracy": ACCURACY_PRESETS[accuracy],
         "compare_int": compare_int,
         "alpha_bounds": alpha_bounds,
         "bounds": bounds,

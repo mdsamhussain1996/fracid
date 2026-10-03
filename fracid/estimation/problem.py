@@ -41,7 +41,7 @@ import numpy as np
 
 from ..data.dataset import Dataset
 from ..models.base import FractionalModel
-from ..solvers import FDESolution, solve_fde
+from ..solvers import FDESolution, abm_solve_batch, solve_fde
 
 PENALTY = 5.0          # normalised residual assigned to samples where the simulation diverged
 
@@ -258,6 +258,72 @@ class FitProblem:
     def objective_u(self, u) -> float:
         """SSE as a function of the unit-box variable (used by all optimisers)."""
         return self.sse(self.u_to_theta(np.clip(u, 0.0, 1.0)))
+
+    # ------------------------------------------------------------------ batched forward map
+    @property
+    def can_batch(self) -> bool:
+        """``True`` if a whole population can be simulated in one sweep (ABM solver, fixed delay)."""
+        return self.solver == "abm" and "tau" not in self.free
+
+    def unpack_batch(self, thetas) -> tuple[np.ndarray, dict, np.ndarray]:
+        """Vectorised :meth:`unpack` for ``thetas`` of shape ``(S, p)``.
+
+        Returns ``alphas (S,)``, ``params`` (dict of scalars or ``(S,)`` arrays) and ``x0 (S, d)``.
+        """
+        thetas = np.atleast_2d(np.asarray(thetas, float))
+        S = thetas.shape[0]
+        params = dict(self.model.params)
+        x0 = np.tile(self._x0_base, (S, 1))
+        j = 0
+        if self.alpha_fixed is not None:
+            alphas = np.full(S, float(self.alpha_fixed))
+        else:
+            alphas = thetas[:, 0].copy(); j = 1
+        for k in self.free:
+            params[k] = thetas[:, j].copy(); j += 1
+        for i in self._x0_free:
+            x0[:, i] = thetas[:, j]; j += 1
+        return alphas, params, x0
+
+    def predict_batch(self, thetas) -> np.ndarray:
+        """Simulated observables for a population, shape ``(S, M, K)``."""
+        alphas, params, x0 = self.unpack_batch(thetas)
+        model = self.model
+        if model.delayed:
+            f = lambda t, X, Xd: model._rhs_xp(X, Xd, params, np)          # noqa: E731
+            tau = float(self.model.params["tau"])
+        else:
+            f = lambda t, X: model._rhs_xp(X, None, params, np)             # noqa: E731
+            tau = None
+        self.nfev += alphas.size
+        with np.errstate(all="ignore"):
+            _, X = abm_solve_batch(f, alphas, x0, self.T, n_steps=self.n_steps, tau=tau,
+                                   memory_steps=self.memory_steps)
+            cols = list(self.data.observed)
+            if self._on_grid:
+                out = X[self._idx][:, :, cols]                               # (M, S, K)
+            else:
+                out = np.stack([np.stack([np.interp(self.data.t, self._grid, X[:, s, c])
+                                          for c in cols], axis=-1)
+                                for s in range(X.shape[1])], axis=1)
+        return np.transpose(out, (1, 0, 2))
+
+    def sse_batch(self, thetas) -> np.ndarray:
+        """Penalised SSE for each member of a population, shape ``(S,)``."""
+        thetas = np.atleast_2d(np.asarray(thetas, float))
+        if not self.can_batch:
+            return np.array([self.sse(th) for th in thetas])
+        pred = self.predict_batch(thetas)
+        with np.errstate(all="ignore"):
+            r = (self.data.y[None] - pred) / self.scale
+        bad = ~np.isfinite(r) | (np.abs(r) > 1e3)
+        r[bad] = PENALTY
+        return np.einsum("smk,smk->s", r, r)
+
+    def objective_u_batch(self, U) -> np.ndarray:
+        """Batched SSE of unit-box points ``U`` of shape ``(S, p)``."""
+        U = np.clip(np.atleast_2d(np.asarray(U, float)), 0.0, 1.0)
+        return self.sse_batch(self.lower + U * (self.upper - self.lower))
 
     # ------------------------------------------------------------------ variants
     def replace(self, **changes) -> "FitProblem":
