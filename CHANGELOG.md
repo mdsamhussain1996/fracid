@@ -16,4 +16,7 @@ All notable changes to FracID are documented in this file.
 - **Monte-Carlo Robustness Engine**: Added `fracid.diagnostics.robustness` with `run_robustness_study()`, evaluating parameter recovery across noise levels ($[0, 1, 2, 5, 10, 15]\%$) and independent random seeds.
 - **Publication Figures**: Added `plot_robustness_matplotlib()` generating high-resolution 2-panel figures ($\hat\alpha$ error vs noise and parameter recovery bands).
 - **Interactive UI Tab**: Introduced dedicated `"🧪 Robustness Study"` tab with live progress tracking, summary error tables, interactive charts, and 300-DPI PNG, vector PDF, and CSV data export buttons.
-- **Unit Tests**: Added `tests/test_robustness.py` verifying multi-seed Monte-Carlo runs and plotting.
+## [v2.0.0-step4] - Step 4: 2-D Objective Loss Landscape
+- **Batched 2-D Loss Surface**: Added `compute_loss_surface_2d()` evaluating $\log_{10} J(\alpha, \theta_k)$ on a 30×30 grid with one batched BLAS sweep per row via `problem.sse_batch()`.
+- **Interactive UI Heatmap**: Added 2-D landscape option in the Alpha Sensitivity tab with Plotly heatmap, contour lines, estimate marker ($\times$), and ground-truth marker ($\circ$).
+- **Unit Tests**: Added `tests/test_landscape_2d.py` covering grid shape, finiteness, and parameter variations.

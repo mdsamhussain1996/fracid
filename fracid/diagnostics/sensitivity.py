@@ -180,3 +180,76 @@ def compute_alpha_sensitivity(
     ci_lo, ci_hi, threshold = compute_profile_ci(result, df, confidence=0.95)
     df.attrs["ci"] = (ci_lo, ci_hi, threshold)
     return df
+
+
+def compute_loss_surface_2d(
+    result: FitResult,
+    param_name: str,
+    alpha_range: tuple[float, float] | None = None,
+    param_range: tuple[float, float] | None = None,
+    n_alpha: int = 30,
+    n_param: int = 30,
+    callback: Callable[[int, int], None] | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    r"""Compute 2-D loss landscape :math:`J(\alpha, \theta_k)` on a regular grid.
+
+    Evaluated row by row using :meth:`FitProblem.sse_batch` (one batched forward sweep per row)
+    when population batching is supported.
+
+    Parameters
+    ----------
+    result : FitResult
+        Converged optimization result.
+    param_name : str
+        Name of the free parameter to vary along the horizontal axis.
+    alpha_range : (float, float), optional
+        Grid range for fractional order :math:`\alpha` (defaults to search bounds or [0.4, 1.0]).
+    param_range : (float, float), optional
+        Grid range for :math:`\theta_k` (defaults to parameter bounds or [0.5 * est, 1.5 * est]).
+    n_alpha : int, default 30
+        Number of grid points along :math:`\alpha`.
+    n_param : int, default 30
+        Number of grid points along :math:`\theta_k`.
+    callback : callable, optional
+        Callback ``callback(row_idx, n_alpha)``.
+
+    Returns
+    -------
+    alphas : ndarray, shape (n_alpha,)
+        Order values along vertical axis.
+    param_vals : ndarray, shape (n_param,)
+        Parameter values along horizontal axis.
+    loss_grid : ndarray, shape (n_alpha, n_param)
+        Objective values :math:`J(\alpha_i, \theta_{k, j})`.
+    """
+    prob = result.problem
+    if alpha_range is None:
+        alpha_range = prob.alpha_bounds if prob.alpha_bounds else (0.4, 1.0)
+
+    est_val = float(result.params.get(param_name, 1.0))
+    if param_range is None:
+        lo, hi = prob.bounds.get(param_name, (0.5 * est_val, 1.5 * est_val))
+        if lo >= hi:
+            lo, hi = 0.5 * est_val, 1.5 * est_val
+        param_range = (float(lo), float(hi))
+
+    alphas = np.linspace(alpha_range[0], alpha_range[1], n_alpha)
+    param_vals = np.linspace(param_range[0], param_range[1], n_param)
+    loss_grid = np.empty((n_alpha, n_param), dtype=float)
+
+    base_dict = dict(result.estimates)
+
+    for i, a in enumerate(alphas):
+        thetas = np.array([
+            prob.theta_from_dict({**base_dict, "alpha": float(a), param_name: float(p)})
+            for p in param_vals
+        ])
+        if prob.can_batch:
+            loss_grid[i, :] = prob.sse_batch(thetas)
+        else:
+            loss_grid[i, :] = [prob.sse(th) for th in thetas]
+        if callback is not None:
+            callback(i + 1, n_alpha)
+
+    return alphas, param_vals, loss_grid
+
