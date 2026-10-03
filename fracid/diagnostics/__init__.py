@@ -5,7 +5,7 @@ from .comparison import (ModelMetrics, compare_fractional_vs_integer,
 from .plots import (fig_to_bytes, plot_phase_portrait_matplotlib,
                     plot_phase_portrait_plotly, plot_residuals_matplotlib,
                     plot_trajectory_matplotlib, plot_trajectory_plotly)
-from .sensitivity import compute_alpha_sensitivity
+from .sensitivity import compute_alpha_sensitivity, compute_profile_ci
 
 __all__ = [
     "ModelMetrics",
@@ -15,6 +15,7 @@ __all__ = [
     "BootstrapResult",
     "run_bootstrap",
     "compute_alpha_sensitivity",
+    "compute_profile_ci",
     "plot_trajectory_matplotlib",
     "plot_phase_portrait_matplotlib",
     "plot_residuals_matplotlib",

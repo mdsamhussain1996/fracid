@@ -163,13 +163,29 @@ def render_main_tabs(frac_res: FitResult, int_res: FitResult | None = None):
             st.download_button("📥 Download bootstrap samples (CSV)", boot_res.samples.to_csv(index=False),
                                file_name="fracid_bootstrap_samples.csv", mime="text/csv")
 
+            # Compare with Profile-Likelihood CI if alpha profile has been computed
+            sens_state = st.session_state.get("sens_df")
+            if sens_state is not None:
+                _, sens_df = sens_state
+                from ..diagnostics import compute_profile_ci
+                ci_lo, ci_hi, _ = sens_df.attrs.get("ci") or compute_profile_ci(frac_res, sens_df)
+                if "alpha" in boot_res.summary.index:
+                    boot_lo = boot_res.summary.loc["alpha", "CI Lower"]
+                    boot_hi = boot_res.summary.loc["alpha", "CI Upper"]
+                    ci_comp_df = pd.DataFrame([
+                        {"Method": "Residual Bootstrap (95%)", "CI Lower": boot_lo, "CI Upper": boot_hi, "CI Width": boot_hi - boot_lo},
+                        {"Method": "Profile Likelihood (95%)", "CI Lower": ci_lo, "CI Upper": ci_hi, "CI Width": ci_hi - ci_lo}
+                    ])
+                    st.subheader("🔍 α Confidence Interval Comparison")
+                    st.dataframe(ci_comp_df.style.format({"CI Lower": "{:.4f}", "CI Upper": "{:.4f}", "CI Width": "{:.4f}"}), width="stretch")
+
     # Tab 6: Alpha Sensitivity
     with t6:
         st.subheader("Loss Profile vs Fractional Order α")
         st.markdown(
-            "**Slice**: other parameters frozen at their estimates (instant). "
-            "**Profile**: the other parameters are re-optimised for every α — the curve whose "
-            "sharpness actually measures how well α is identified.")
+            "**Slice**: other parameters frozen at their estimates (instant batched sweep). "
+            "**Profile**: the other parameters are re-optimised for every α using continuation — "
+            "the curve whose sharpness measures parameter identifiability and profile-likelihood CIs.")
         if "alpha" not in frac_res.estimates:
             st.info("α was fixed in this fit, so there is no α-profile to show.")
         else:
@@ -184,6 +200,11 @@ def render_main_tabs(frac_res: FitResult, int_res: FitResult | None = None):
             if st.session_state.get("sens_df") is not None:
                 used_mode, sens_df = st.session_state["sens_df"]
                 import plotly.graph_objects as go
+                from ..diagnostics import compute_profile_ci
+                ci_lo, ci_hi, threshold = sens_df.attrs.get("ci") or compute_profile_ci(frac_res, sens_df)
+
+                st.info(f"📐 **Profile-Likelihood 95% Confidence Interval for α**: `[{ci_lo:.4f}, {ci_hi:.4f}]` (width: `{ci_hi - ci_lo:.4f}`, cut-off $J={threshold:.4g}$)")
+
                 fig = go.Figure(go.Scatter(x=sens_df["alpha"], y=sens_df["sse"], mode="lines+markers",
                                            name=f"J(α) – {used_mode}"))
                 fig.add_vline(x=frac_res.alpha, line_dash="dash",
@@ -192,6 +213,16 @@ def render_main_tabs(frac_res: FitResult, int_res: FitResult | None = None):
                 if true_a is not None:
                     fig.add_vline(x=true_a, line_dash="dot", line_color="green",
                                   annotation_text=f"true α = {true_a:.3f}", annotation_position="bottom right")
+
+                # Cut-off line and CI region
+                if np.isfinite(threshold):
+                    fig.add_hline(y=threshold, line_dash="dash", line_color="orange",
+                                  annotation_text=f"95% CI cut-off ({threshold:.3g})",
+                                  annotation_position="top left")
+                if ci_lo < ci_hi:
+                    fig.add_vrect(x0=ci_lo, x1=ci_hi, fillcolor="rgba(255, 165, 0, 0.12)",
+                                  line_width=0, annotation_text="95% CI", annotation_position="top right")
+
                 fig.update_layout(xaxis_title="α", yaxis_title="normalised SSE  J(α)", yaxis_type="log",
                                   height=420, margin=dict(l=10, r=10, t=30, b=10))
                 st.plotly_chart(fig, width="stretch")
