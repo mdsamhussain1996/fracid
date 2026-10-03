@@ -24,3 +24,8 @@ All notable changes to FracID are documented in this file.
 - **Partial Observations & Subsampling**: Added state channel multiselect and subsampling factor inputs in the synthetic data generator.
 - **Initial Condition Mode**: Added contextual detection of unmeasured states with automatic recommendation of `x0_mode="estimate"` to jointly infer unknown initial states $x_0$ alongside $(\alpha, \theta)$.
 - **Unit Tests**: Added `tests/test_partial_observations.py` validating channel selection, subsampling, and joint initial condition estimation.
+## [v2.0.0-step6] - Step 6: Real-World Outbreak Dataset & Case Study
+- **Real Benchmark Dataset**: Added the historical 1978 English Boarding School Influenza dataset (`data/boarding_school_influenza_1978.csv`) with comprehensive provenance and units documentation in `data/README.md`.
+- **Sidebar Integration**: Added `"Example: Influenza Outbreak 1978"` directly in the sidebar data source selector to instantly load the outbreak benchmark with pre-configured parameters.
+- **Tutorial Notebook**: Added `notebooks/case_study_real_data.ipynb` reproducing data exploration, fractional SIR identification, integer-order comparison, residual bootstrap, and profile likelihood CIs.
+- **Unit Tests**: Added `tests/test_real_data.py` validating dataset existence, structure, and model fitting.

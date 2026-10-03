@@ -36,7 +36,7 @@ def render_sidebar() -> dict[str, Any]:
 
     # 1. Data Source selection
     st.sidebar.header("1. Data Source")
-    data_source = st.sidebar.radio("Data Source", ["Synthetic Generator", "Upload CSV"], index=0)
+    data_source = st.sidebar.radio("Data Source", ["Synthetic Generator", "Upload CSV", "Example: Influenza Outbreak 1978"], index=0)
 
     model_name = "Fractional Chen"
     model: FractionalModel | None = None
@@ -118,6 +118,23 @@ def render_sidebar() -> dict[str, Any]:
         if dataset is not None:
             st.sidebar.success(f"Generated {dataset.n} samples ({', '.join(dataset.names)})")
 
+    elif data_source == "Example: Influenza Outbreak 1978":
+        import os
+        model_name = "Fractional SIR"
+        model_cls = MODELS[model_name]
+        model = model_cls(params=dict(beta=1.5, gamma=0.45, N=763.0), x0=[760.0, 3.0, 0.0])
+        csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "boarding_school_influenza_1978.csv")
+        if os.path.exists(csv_path):
+            df = pd.read_csv(csv_path)
+            dataset = Dataset.from_frame(df, time_col="t", value_cols=["S", "I", "R"],
+                                         meta=dict(model="Fractional SIR", N=763.0, real_data=True,
+                                                   description="1978 English Boarding School Influenza Outbreak"))
+            st.sidebar.success(f"Loaded Real Benchmark: {dataset.n} daily counts (N=763)")
+        else:
+            st.sidebar.error(f"Dataset file not found at {csv_path}")
+            dataset = None
+        x0_mode = "data"
+
     else:
         x0_mode = "data"
         uploaded_file = st.sidebar.file_uploader("Upload CSV (time in col 0)", type=["csv"])
@@ -125,7 +142,7 @@ def render_sidebar() -> dict[str, Any]:
             "📄 Download CSV template",
             data="t,x,y,z\n0.0,-9.0,-5.0,14.0\n0.01,-8.7,-4.1,13.8\n0.02,-8.3,-3.2,13.5\n",
             file_name="fracid_template.csv", mime="text/csv", width="stretch")
-        model_name = st.sidebar.selectbox("Candidate Model Template", list(MODELS.keys()), index=2)
+        model_name = st.sidebar.selectbox("Candidate Model Template", list(MODELS.keys()), index=5)
         model = MODELS[model_name]()
 
         if uploaded_file is not None:
